@@ -1,0 +1,23 @@
+#for plotting the null values. this function plots graph of columns in the x-axis and its percentage of null values in the y-axis
+def graph(df):
+    
+    null_percentage=(df.isnull().sum() *100)/len(df)
+    x=np.array(df.columns)
+    y=np.array(null_percentage)
+
+    plt.figure(figsize=(12,10))
+    plt.ylabel('Percentage',fontsize=14,color='green')
+    plt.xlabel('Columns',fontsize=14,color='green')
+    plt.title("Percentage of null values present in each column",fontsize=20,color="maroon")
+    
+    # set orientation for X axis labels
+    plt.xticks(rotation=70)
+    {
+        'xlabel': 'Columns',
+        'ylabel': 'Percentage',
+        'graphTitle': 'Percentage of null values present in each column'
+    }
+
+# draw bar chart
+    plt.bar(x,y)
+    return plt.show()
