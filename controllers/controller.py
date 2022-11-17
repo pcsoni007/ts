@@ -4,7 +4,7 @@ import pandas as pd
 import models.timeseries as timeseries
 # import models.timeseries as timeseries
 import os
-from app import app
+from app import app, cache
 from time import time
 import sys
 import json
@@ -35,6 +35,7 @@ def get_metadata(filename, getOnlyDataFrame=False):
     elif ('csv' in filename):
         df = pd.read_csv(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
+
     if getOnlyDataFrame:
         return df
 
@@ -42,9 +43,12 @@ def get_metadata(filename, getOnlyDataFrame=False):
     rows_cols = timeseries.Shape_df(df)
     desc = (timeseries.data_description(df))
     head = (timeseries.display_head(df))
-    tail = (timeseries.display_tail(df))
-
-    return rows_cols, desc, head, tail, df
+    # tail = (timeseries.display_tail(df))
+    # print('rows_cols', rows_cols)
+    # print('Description', desc)
+    # print('Head', head)
+    # print('tail', tail)
+    return rows_cols, desc, head, df
 
 
 def get_unique_name(ext=''):
@@ -54,7 +58,7 @@ def get_unique_name(ext=''):
 
 @app.post('/upload')
 def upload_file():
-
+    # global df_mapping
     if 'file' not in request.files:
         return jsonify({"message": "Bad request, Missing file attribute in files."}), 400
 
@@ -73,17 +77,20 @@ def upload_file():
                 file.save(os.path.join(
                     app.config['UPLOAD_FOLDER'], new_unique_name))
 
-                rows_cols, desc, head, tail, df = get_metadata(filename)
+                rows_cols, desc, head, df = get_metadata(filename)
 
                 df_mapping[new_unique_name] = df
-
-                print(df_mapping)
+                print('Mapped Dataframe ',df_mapping) 
+                cache.set('mapped_df', df_mapping)
+                cache.set('df', df)
 
                 return jsonify({
                     "shape": json.dumps(rows_cols),
                     "description": desc.to_json(default_handler=str, orient='columns'),
                     "head": head.to_json(orient='records'),
-                    "unique_filename": new_unique_name
+                    "unique_filename": new_unique_name,
+                    "dataframe": df.to_json(orient='split')
+
                 }), 201
                 # return jsonify({
                 #     "shape": json.dump(rows_cols),
@@ -94,7 +101,7 @@ def upload_file():
                 # }), 201
 
             except Exception as ex:
-                print(ex)
+                print("Exception ",ex)
                 return jsonify({"message": "An error occured while uploading the file."}), 500
 
         else:
@@ -103,19 +110,24 @@ def upload_file():
 
 @app.get('/uploads/<df_key>')
 def uploaded_file(df_key):
-    print(df_key)
+    df_mapping = cache.get('mapped_df')
+    print(df_key, df_mapping.keys())
     if df_key in df_mapping.keys():
         try:
-            rows_cols, desc, head, tail, df = get_metadata(df_key)
+            rows_cols, desc, head, df = get_metadata(df_key)
 
-            return jsonify({
+            response = jsonify({
                 "message": "Success",
-                "shape": rows_cols.to_json(orient="values"),
-                "description": desc.to_json(orient='columns'),
-                "tail": tail.to_json(orient='records'),
+                "shape": json.dumps(rows_cols),
+                "description": desc.to_json(default_handler=str, orient='columns'),
+                # "tail": tail.to_json(orient='records'),
                 "head": head.to_json(orient='records'),
-                "unique_filename": df_key
+                "unique_filename": df_key,
+                "dataframe": df.to_json(orient='split')
+
             }), 200
+            # print('sending response', response)
+            return response
 
         except Exception as ex:
             print(ex)
