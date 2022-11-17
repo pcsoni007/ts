@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 from flask_caching import Cache
 # from flask_redis import FlaskRedis
+import redis_config as rc
 from dotenv import load_dotenv
 load_dotenv()
 import os
@@ -13,7 +14,7 @@ config = {
     "CACHE_DEFAULT_TIMEOUT": 3000,    # run app in debug mode
     "CACHE_REDIS_URL": os.getenv('REDIS_URL'),
     "CACHE_REDIS_PASSWORD": os.getenv('REDIS_PASS'),
-    "CACHE_REDIS_PORT": os.getenv('REDIS_PORT')
+    "CACHE_REDIS_PORT": rc.REDIS_PORT
 
 }
 
